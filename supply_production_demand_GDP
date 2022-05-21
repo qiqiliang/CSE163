@@ -1,0 +1,87 @@
+import pandas as pd
+
+# SUPPLY
+# Meat
+meat_supply_DF = pd.read_csv('meat-supply-per-person.csv')
+meat_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Egg
+egg_supply_DF = pd.read_csv('per-capita-egg-consumption-kilograms-per-year.csv')
+egg_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg
+meat_egg_supply = pd.merge(meat_supply_DF, egg_supply_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Milk
+milk_supply_DF = pd.read_csv('per-capita-milk-consumption.csv')
+milk_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg and milk
+
+meat_egg_milk_supply = pd.merge(meat_egg_supply, milk_supply_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Merged meat and egg + Food supply (calories) + Life expectancy: 1961-2017
+
+food_supply_v_life_expectancy_DF = pd.read_csv('food_supply_life_expectancy.csv')
+food_supply_v_life_expectancy_DF.drop("Code", axis = 1, inplace = True)
+food_supply_v_life_expectancy_DF.drop("Continent", axis = 1, inplace = True)
+food_supply_v_life_expectancy_DF.drop("Population (historical estimates)", axis = 1, inplace = True)
+
+food_supply_life = pd.merge(meat_egg_milk_supply, food_supply_v_life_expectancy_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+
+# DEMAND: Hypothetical global meat demand if everyone in the world ate the same quantity as the average citizen of a
+# given country
+
+meat_demand_DF = pd.read_csv('hypothetical-global-meat-demand.csv')
+meat_demand_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged this dataset with the bigger food supply dataset above. Some dates are filtered
+# New year range: 1961-2013
+supply_and_demand = pd.merge(food_supply_life, meat_demand_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+
+# PRODUCTION
+# Meat
+
+meat_prod_DF = pd.read_csv('global-meat-production-by-livestock-type.csv')
+meat_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Egg
+
+egg_prod_DF = pd.read_csv('egg-production-thousand-tonnes.csv')
+egg_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg
+
+meat_egg_prod = pd.merge(meat_prod_DF, egg_prod_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+# Milk
+
+milk_prod_DF = pd.read_csv('milk-production-tonnes.csv')
+milk_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat egg milk: 1961-2018 (mostly)
+
+meat_egg_milk_prod = pd.merge(meat_egg_prod, milk_prod_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Supply, demand, production merge: 1961-2013
+
+supply_demand_production = pd.merge(supply_and_demand, meat_egg_milk_prod, on = ['Entity', 'Year'], how = 'inner')
+# supply_demand_production.to_csv('supply_demand_production.csv')
+
+
+# Meat Consumption vs GDP per capita
+
+meat_consumption_GDP_DF = pd.read_csv('meat-consumption-vs-gdp-per-capita.csv')
+meat_consumption_GDP_DF.drop("Code", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Population (historical estimates)", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Continent", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Meat food supply quantity (kg/capita/yr) (FAO, 2020)", axis = 1, inplace = True)
+
+# Supply, demand, production, GDP merge: 1961-2013
+supply_demand_production_GDP = pd.merge(supply_demand_production, meat_consumption_GDP_DF, on = ['Entity', 'Year'], how = 'inner')
+supply_demand_production_GDP.to_csv('supply_demand_production_GDP.csv')
