@@ -1,0 +1,27 @@
+# Food footprints GHG emissions
+
+ghg_emissions_DF = pd.read_csv('food-footprints-ghg.csv')
+ghg_emissions_DF.drop("Code", axis = 1, inplace = True)
+
+# Food footprints land
+
+land_use_DF = pd.read_csv('food-footprints-land.csv')
+land_use_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Food footprints freshwater
+
+freshwater_DF = pd.read_csv('food-footprints-freshwater.csv')
+freshwater_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Food footprints water pollution
+
+water_pollution_DF = pd.read_csv('food-footprints-water-pollution.csv')
+water_pollution_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Merging these datasets together
+food_footprints = pd.merge(pd.merge(ghg_emissions_DF, land_use_DF, on = ['Entity', 'Year'], how = 'inner'), freshwater_DF, on = ['Entity', 'Year'], how = 'inner')
+food_footprints = pd.merge(food_footprints, water_pollution_DF, on = ['Entity', 'Year'], how = 'inner')
+food_footprints.to_csv('foot_footprints_total.csv')
