@@ -1,0 +1,281 @@
+'''
+Kerry Larson, Qiqi Liang, and Tammy Luu
+CSE 163 Project
+
+The intent of this file is to plot various graphs relating
+life expectancy, food supply, food types, and CO2 emissions.
+This file explores research questions 1, 2, and 3.
+'''
+
+import pandas as pd
+from pathlib import Path
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.express as px
+from numpy import random
+
+
+def read_data(data):
+    '''
+    From the given file path (data), the csv file
+    is read and returned.
+    '''
+    df = pd.read_csv(data)
+    return df
+
+
+def narrow_data(df, mini=2002, maxi=2022):
+    '''
+    The function narrows down a given data set based on the given column name
+    and the minimum and maximum values. Subsequent values are dropped
+    from the analysis. Return a new dataframe.
+    '''
+    new_df = df[(df['Year'] >= mini) & (df['Year'] <= maxi)]
+    new_df = new_df.dropna()
+    new_df = new_df[new_df['Entity'] != 'World']
+    return new_df
+
+
+def random_count(val, number):
+    '''
+    Finds random numbers in the given range for a specified
+    amount of numbers. Returns a list.
+    '''
+    return list(random.randint(val) for i in range(number))
+
+
+# -------------------------------------------------------------------------------
+# Question 1
+
+def life_expectancy_random(data):
+    '''
+    This function takes in a dataframe to analyze for the life expectancy
+    and food supply (daily caloric supply). The function utilizes the random
+    function. Creates subplots for food supply (top) and life expectancy
+    (bottom).
+    Shows two scatter plots as a figure.
+    '''
+    countries = dict()
+    count = 0
+
+    # Assigns a unique index to each country in a dictionary
+    for val in data['Entity'].unique():
+        countries[count] = val
+        count += 1
+
+    # Sets up a figure with two subplots (horizontally)
+    fig = go.Figure()
+    fig = make_subplots(rows=2, cols=1,
+                        subplot_titles=('Food Supply', 'Life Expectancy'))
+
+    # Randomizes three countries
+    country_index = random_count(count, 3)
+    # Sets up a way for each country to be plotted with a specific color
+    color_list = ['darkblue', 'darkseagreen', 'darkviolet']
+    amount = 0
+
+    # Creates subplots for the 3 randomized countries
+    for nums in country_index:
+        val = countries.get(nums)
+        country = data[data['Entity'] == val]
+        trace1 = go.Scatter(x=country['Year'],
+                            y=country['Daily caloric supply'],
+                            name=str(val),
+                            marker_color=color_list[amount])
+        fig.append_trace(trace1, 1, 1)
+        trace2 = go.Scatter(x=country['Year'],
+                            y=country['Life Expectancy'],
+                            name=str(val),
+                            marker_color=color_list[amount])
+        fig.append_trace(trace2, 2, 1)
+        amount += 1
+
+    # Layouts the x and y axis titles
+    fig['layout']['xaxis']['title'] = 'Year'
+    fig['layout']['xaxis2']['title'] = 'Year'
+    fig['layout']['yaxis']['title'] = 'Daily caloric value'
+    fig['layout']['yaxis2']['title'] = 'Life expectancy (years)'
+    fig.show()
+
+
+def food_supply_map(data):
+    '''
+    Creates a map of the global food supply between 2002 and 2022.
+    Provides an animation feature for the user to change the year
+    with a slider.
+    Shows choropleth map of food supply as a figure.
+    '''
+    fig1 = px.choropleth(data, locations='Code', color='Daily caloric supply',
+                         animation_frame='Year', projection='natural earth',
+                         title='Food supply between 2002-2002')
+    fig1.show()
+
+
+def life_expectancy_map(data):
+    '''
+    Makes a map of the global life expectancy between 2002 and 2022.
+    A slider is provided as a animation feature for the user to interact with.
+    Shows choropleth map of life expectancy as a figure.
+    '''
+    fig2 = px.choropleth(data, locations='Code',
+                         color='Life Expectancy',
+                         animation_frame='Year', hover_name='Entity',
+                         projection='natural earth',
+                         color_continuous_scale='Earth',
+                         title='Life expectancy between 2002-2022')
+    fig2.show()
+
+
+# -------------------------------------------------------------------------------
+# Question 2
+
+def percentages(data):
+    '''
+    For the footprints data frame, it is necessary to narrow
+    down any food impacts on the environment with greater than 1
+    percent to properly plot on the various pie charts.
+    Returns a data frame containg 4 new columns relating to the
+    percent associated with each footprint.
+    '''
+
+    # Renames all columns
+    ghg_name = 'GHG emissions per kilogram'
+    land_name = 'Land use per kilogram'
+    water_name = 'Freshwater withdrawals per kilogram'
+    emissions_name = 'Eutrophying emissions per kilogram'
+
+    # Calculates the percentage
+    data['percent GHG emissions'] = (data[ghg_name] /
+                                     data[ghg_name].sum()) * 100
+
+    data['percent land use'] = (data[land_name] /
+                                data[land_name].sum()) * 100
+
+    data['percent freshwater'] = (data[water_name] /
+                                  data[water_name].sum()) * 100
+
+    data['percent eutrophication'] = (data[emissions_name] /
+                                      data[emissions_name].sum()) * 100
+
+    # Masking
+
+    # GHG > 1%, land use > 1%, freshwater > 1 %, eutrophication > 1%
+    mask = ((data['percent GHG emissions'] > 1) &
+            (data['percent land use'] > 1) &
+            (data['percent freshwater'] > 1) &
+            (data['percent eutrophication'] > 1))
+    return data[mask]
+
+
+def food_types(data):
+    '''
+    Takes the data from a dataframe to plot in pie charts.
+    Two subplots are on a single figure. Proper labeling
+    corresponding to type of impact, food percentage, and
+    name of the food is needed.
+    Shows two figure containing the 4 metrics of footprints.
+    '''
+    labels = data['Entity']
+    # Create subplots: use 'domain' type for pie subplot
+
+    fig4 = make_subplots(rows=1, cols=2, specs=[[{'type': 'domain'},
+                                                {'type': 'domain'}]])
+    fig4.add_trace(go.Pie(labels=labels,
+                          values=data['GHG emissions per kilogram'],
+                          name="GHG emissions per kilogram"), 1, 1)
+    fig4.add_trace(go.Pie(labels=labels,
+                          values=data['Land use per kilogram'],
+                          name="Land use per kilogram"), 1, 2)
+    fig4.update_traces(hole=.4, hoverinfo="label+percent+name")
+
+    fig4.update_layout(
+        title_text="Environmental Impact of Food",
+        # Add text in the center of the donut
+        annotations=[dict(text='GHG', x=0.20, y=0.5,
+                          font_size=20, showarrow=False),
+                     dict(text='Land', x=0.80, y=0.5,
+                          font_size=20, showarrow=False)])
+    fig4.update_layout(margin=dict(t=80, b=80, l=80, r=80))
+    fig4.show()
+
+    # Create second set of subplots
+
+    fig5 = make_subplots(rows=1, cols=2, specs=[[{'type': 'domain'},
+                                                 {'type': 'domain'}]])
+
+    fig5.add_trace(go.Pie(labels=labels,
+                          values=data['Freshwater withdrawals per kilogram'],
+                          name="Freshwater withdrawals per kilogram"), 1, 1)
+
+    fig5.add_trace(go.Pie(labels=labels,
+                          values=data['Eutrophying emissions per kilogram'],
+                          name="Eutrophying emissions per kilogram"), 1, 2)
+
+    fig5.update_traces(hole=.4, hoverinfo="label+percent+name")
+
+    fig5.update_layout(
+        title_text="Environmental Impact of Food",
+        # Add text in the center of the donut
+        annotations=[dict(text='Freshwater',
+                          x=0.18, y=0.5, font_size=20, showarrow=False),
+                     dict(text='Eutrophication', x=0.84, y=0.5,
+                          font_size=20, showarrow=False)])
+    fig5.update_layout(margin=dict(t=80, b=80, l=80, r=80))
+    fig5.show()
+
+
+# -------------------------------------------------------------------------------
+# Question 3
+# Separate file showing year vs Co2 emissions (y1) and Life expectancy (y2)
+
+
+def environment_life(data):
+    '''
+    A graphical display of how CO2 emissions has changed with
+    respect to life expectancy over a given range of years.
+    Utilizes a slider to allow the user to change the year.
+    Shows a bubble scatter plot.
+    '''
+    fig3 = px.scatter(data, x="value", y="Life Expectancy",
+                      animation_frame="Year", animation_group="Entity",
+                      hover_name="Entity", color='Entity',
+                      size='Population (historical estimates)')
+
+    fig3["layout"].pop("updatemenus")  # optional, drop animation buttons
+    fig3.update_layout(
+                       xaxis={'title': 'CO2 Emissions (metric tons/capita)'},
+                       title={'text': 'Emissions vs Life Expectancy'})
+    fig3.update_yaxes(title_text="Life Expectancy")
+    fig3.show()
+
+
+def main():
+    '''
+    Opens up the folder and file dedicated the various csv files
+    and reads them to analyze the columns.
+    Calls all prominent functions for narrowing and plotting the data.
+    '''
+    data_folder = Path('CSE163Project_KTQ')
+    life_open = data_folder / 'supply_life_expectancy.csv'
+    emissions_open = data_folder / 'merged_env_life.csv'
+    food_open = data_folder / 'foot_footprints_total.csv'
+
+    life_df = read_data(life_open)
+    emissions_df = read_data(emissions_open)
+    food_df = read_data(food_open)
+
+    life_narrowed = narrow_data(life_df)
+    emissions_narrowed = narrow_data(emissions_df)
+    food_narrowed = percentages(food_df)
+
+    life_expectancy_random(life_narrowed)
+    food_supply_map(life_narrowed)
+    life_expectancy_map(life_narrowed)
+
+    environment_life(emissions_narrowed)
+
+    food_types(food_narrowed)
+
+
+if __name__ == '__main__':
+    main()
