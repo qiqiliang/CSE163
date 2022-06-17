@@ -1,4 +1,4 @@
-# CSE163
+# README File
 
 Make sure that all libraries are installed, such as plotly, Dash, and pandas. Once all libraries are installed and all packages are imported, simply run the file called "main_KTQ.py". This will generate 6 different plots and will promptly pop up in a web browser. If at any point, the user does not want to see a particular plot, the "fig.show" in the respective function or the function in the main method can be commented out in the "main_KTQ.py" file to view all other plots. 
 
