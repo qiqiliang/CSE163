@@ -1,0 +1,214 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+# SUPPLY
+# Meat
+
+meat_supply_DF = pd.read_csv('meat-supply-per-person.csv')
+meat_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Egg
+
+egg_supply_DF = pd.read_csv('per-capita-egg-consumption-kilograms-per-year.csv')
+egg_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg
+
+meat_egg_supply = pd.merge(meat_supply_DF, egg_supply_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Milk
+
+milk_supply_DF = pd.read_csv('per-capita-milk-consumption.csv')
+milk_supply_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg and milk
+
+meat_egg_milk_supply = pd.merge(meat_egg_supply, milk_supply_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Merged meat and egg + Food supply (calories) + Life expectancy: 1961-2017
+
+food_supply_v_life_expectancy_DF = pd.read_csv('food_supply_life_expectancy.csv')
+food_supply_v_life_expectancy_DF.drop("Code", axis = 1, inplace = True)
+food_supply_v_life_expectancy_DF.drop("Continent", axis = 1, inplace = True)
+#food_supply_v_life_expectancy_DF.drop("Population (historical estimates)", axis = 1, inplace = True)
+
+food_supply_life = pd.merge(meat_egg_milk_supply, food_supply_v_life_expectancy_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+
+# DEMAND: Hypothetical global meat demand if everyone in the world ate the same quantity as the average citizen of a
+# given country
+
+meat_demand_DF = pd.read_csv('hypothetical-global-meat-demand.csv')
+meat_demand_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged this dataset with the bigger food supply dataset above. Some dates are filtered
+# New year range: 1961-2013
+
+supply_and_demand = pd.merge(food_supply_life, meat_demand_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+
+# PRODUCTION
+# Meat
+
+meat_prod_DF = pd.read_csv('global-meat-production-by-livestock-type.csv')
+meat_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Egg
+
+egg_prod_DF = pd.read_csv('egg-production-thousand-tonnes.csv')
+egg_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat and egg
+
+meat_egg_prod = pd.merge(meat_prod_DF, egg_prod_DF, on = ['Entity', 'Year'], how = 'inner')
+
+
+# Milk
+
+milk_prod_DF = pd.read_csv('milk-production-tonnes.csv')
+milk_prod_DF.drop("Code", axis = 1, inplace = True)
+
+# Merged meat egg milk: 1961-2018 (mostly)
+
+meat_egg_milk_prod = pd.merge(meat_egg_prod, milk_prod_DF, on = ['Entity', 'Year'], how = 'inner')
+
+# Supply, demand, production merge: 1961-2013
+
+supply_demand_production = pd.merge(supply_and_demand, meat_egg_milk_prod, on = ['Entity', 'Year'], how = 'inner')
+supply_demand_production.to_csv('supply_demand_production.csv')
+
+
+# Meat Consumption vs GDP per capita
+
+meat_consumption_GDP_DF = pd.read_csv('meat-consumption-vs-gdp-per-capita.csv')
+meat_consumption_GDP_DF.drop("Code", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Population (historical estimates)", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Continent", axis = 1, inplace = True)
+meat_consumption_GDP_DF.drop("Meat food supply quantity (kg/capita/yr) (FAO, 2020)", axis = 1, inplace = True)
+# meat_consumption_GDP_DF.to_csv('test_meat.csv')
+
+# Supply, demand, production, GDP merge: 1961-2013
+
+supply_demand_production_GDP = pd.merge(supply_demand_production, meat_consumption_GDP_DF, on = ['Entity', 'Year'], how = 'inner')
+supply_demand_production_GDP.to_csv('supply_demand_production_GDP.csv')
+
+
+
+# Food footprints GHG emissions
+
+ghg_emissions_DF = pd.read_csv('food-footprints-ghg.csv')
+ghg_emissions_DF.drop("Code", axis = 1, inplace = True)
+
+# Food footprints land
+
+land_use_DF = pd.read_csv('food-footprints-land.csv')
+land_use_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Food footprints freshwater
+
+freshwater_DF = pd.read_csv('food-footprints-freshwater.csv')
+freshwater_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Food footprints water pollution
+
+water_pollution_DF = pd.read_csv('food-footprints-water-pollution.csv')
+water_pollution_DF.drop("Code", axis = 1, inplace = True)
+
+
+# Merging these datasets together
+
+food_footprints = pd.merge(pd.merge(ghg_emissions_DF, land_use_DF, on = ['Entity', 'Year'], how = 'inner'), freshwater_DF, on = ['Entity', 'Year'], how = 'inner')
+food_footprints = pd.merge(food_footprints, water_pollution_DF, on = ['Entity', 'Year'], how = 'inner')
+# food_footprints.to_csv('foot_footprints_total.csv')
+
+#-------------------------------------------------------------------------------
+
+# Datasets that I am using: food_footprints and supply_demand_production_GDP
+
+# Filtering, renaming the columns, dropping the null values, masking years
+
+sdp = supply_demand_production_GDP[['Entity', 'Year', 'Estimates, 1950 - 2020: Annually interpolated demographic indicators - Life expectancy at birth, both sexes combined (years)', 'Daily caloric supply (OWID based on UN FAO & historical sources)', 'GDP per capita, PPP (constant 2017 international $)', 'Population (historical estimates)']]
+sdp = sdp.rename(columns = {"Estimates, 1950 - 2020: Annually interpolated demographic indicators - Life expectancy at birth, both sexes combined (years)" : "Life expectancy", "Daily caloric supply (OWID based on UN FAO & historical sources)" : "Daily caloric supply", "Entity" : "Country", "GDP per capita, PPP (constant 2017 international $)": "GDP", "Population (historical estimates)" : "Population"})
+sdp = sdp.dropna()
+sdp = sdp[(sdp['Year'] >= 2002) & (sdp['Year'] <= 2013)]
+sdp = sdp[sdp['Country'] != 'World']
+# Plotting with plotly, life expectancy vs daily caloric supply based on food and country (entity)
+
+fig=px.scatter(sdp, x="Daily caloric supply", y="Life expectancy", animation_frame="Year", animation_group="Country",
+               size ="Population", size_max = 45, color="Country", hover_name="Country") 
+
+fig.update_layout(showlegend=True) 
+fig.show()
+
+
+#---------------------------------------------------------------------------------
+# Food and impact on environment.
+# Selecting a few rowa]s
+# Turning each column of food footprints dataset into a percentage
+food_footprints['percent GHG emissions'] = (food_footprints['GHG emissions per kilogram (Poore & Nemecek, 2018)'] / 
+                  food_footprints['GHG emissions per kilogram (Poore & Nemecek, 2018)'].sum()) * 100
+
+food_footprints['percent land use'] = (food_footprints['Land use per kilogram (Poore & Nemecek, 2018)'] / 
+                  food_footprints['Land use per kilogram (Poore & Nemecek, 2018)'].sum()) * 100
+
+food_footprints['percent freshwater'] = (food_footprints['Freshwater withdrawals per kilogram (Poore & Nemecek, 2018)'] / 
+                  food_footprints['Freshwater withdrawals per kilogram (Poore & Nemecek, 2018)'].sum()) * 100
+
+food_footprints['percent eutrophication'] = (food_footprints['Eutrophying emissions per kilogram (Poore & Nemecek, 2018)'] / 
+                  food_footprints['Eutrophying emissions per kilogram (Poore & Nemecek, 2018)'].sum()) * 100
+
+# Masking
+
+# GHG > 1%, land use > 1%, freshwater > 1 %, eutrophication > 1%
+mask = (food_footprints['percent GHG emissions'] > 1) & (food_footprints['percent land use'] > 1) & (food_footprints['percent freshwater'] > 1) & (food_footprints['percent eutrophication'] > 1)
+food_footprints = food_footprints[mask]
+
+
+# Labels = categories for pie chart (food/entity)
+
+labels = food_footprints['Entity']
+
+
+# Create subplots: use 'domain' type for pie subplot
+
+fig2 = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
+
+fig2.add_trace(go.Pie(labels=labels, values=food_footprints['percent GHG emissions'], name="GHG emissions per kilogram (Poore & Nemecek, 2018)"), 1, 1)
+
+fig2.add_trace(go.Pie(labels=labels, values= food_footprints['percent land use'], name="Land use per kilogram (Poore & Nemecek, 2018)"), 1, 2)
+
+fig2.update_traces(hole=.4, hoverinfo="label+percent+name")
+
+fig2.update_layout(
+    title_text="Environmental Impact of Food",
+    # Add text in the center of the donut
+    annotations=[dict(text='GHG', x=0.20, y=0.5, font_size=20, showarrow=False),
+                 dict(text='Land', x= 0.80, y=0.5, font_size=20, showarrow=False)])
+fig2.update_layout(margin=dict(t=80, b=80, l=80, r=80))
+fig2.show()
+
+# Create second set of subplots
+
+fig3 = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
+
+fig3.add_trace(go.Pie(labels=labels, values= food_footprints['percent freshwater'], name="Freshwater withdrawals per kilogram (Poore & Nemecek, 2018)"), 1, 1)
+
+fig3.add_trace(go.Pie(labels=labels, values= food_footprints['percent eutrophication'], name="Eutrophying emissions per kilogram (Poore & Nemecek, 2018)"), 1, 2)
+
+fig3.update_traces(hole=.4, hoverinfo="label+percent+name")
+
+fig3.update_layout(
+    title_text="Environmental Impact of Food",
+    # Add text in the center of the donut
+    annotations=[dict(text='Freshwater', x=0.18, y=0.5, font_size=20, showarrow=False),
+                 dict(text='Eutrophication', x=0.84, y=0.5, font_size=20, showarrow=False)])
+fig3.update_layout(margin=dict(t=80, b=80, l=80, r=80))
+fig3.show()
